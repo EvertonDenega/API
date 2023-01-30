@@ -2,7 +2,7 @@ from typing import List
 from fastapi import FastAPI 
 from fastapi import HTTPException, status
 from pydantic import BaseModel
-from models import Alunos
+from models import Aluno
 
 
 app = FastAPI()
@@ -13,18 +13,10 @@ async def raiz():
 
 alunos = {
     1: "Everton",
-    2: "Vander",
-    3: "João",
-    4: "Thiago"
+    2: "Outro",
+    3: "Testador",
+    4: "Mario"
 }
-
-alunos = [
-    {"id": 1, "name": "William" }
-]
-
-class Aluno(BaseModel):
-    id: int
-    name: str
 
 
 @app.get('/alunos')
@@ -32,7 +24,7 @@ async def get_alunos():
     return alunos
 
 @app.get('/alunos/{aluno_id}')
-async def get_aluno(aluno_id: int) -> List[Aluno]:
+async def get_aluno(aluno_id: int):
     try:
         aluno = alunos[aluno_id]
         alunos.update({
@@ -78,11 +70,10 @@ async def get_professor_por_chave(prof_nome: str):
 @app.post("/aluno/")
 async def post_aluno(aluno: Aluno):
     next_id = int(len(aluno))
-    aluno = {
-        "next_id" : 0,
-        "nome" : "Everton",
-        "idade" : 38,
-        "email" : "evert@gmail.com"
-    }
-
+    aluno = [{
+        "next_id": next_id,
+        "nome": "everton",
+        "idade": 38,
+        "email": "e@eu.com",
+    }]
     return aluno
