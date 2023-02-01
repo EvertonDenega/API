@@ -1,40 +1,82 @@
-from typing import List
-from fastapi import FastAPI 
-from fastapi import HTTPException, status
-from pydantic import BaseModel
+from fastapi import FastAPI, HTTPException, Path, Response, status
+from fastapi import Query
+from fastapi import Header
 from models import Aluno
-
 
 app = FastAPI()
 
 @app.get('/')
 async def raiz():
-    return { "mensagem": "BEM VINDO" }
+    return {"mensagem": "Seja bem vindo ao more devs"}
 
 alunos = {
-    1: "Everton",
-    2: "Outro",
-    3: "Testador",
-    4: "Mario"
+    1: {
+        "nome": "Everton",
+        "idade": "38",
+        "email": "eu@eu.com"
+    },
+    2: {
+        "nome": "Prof",
+        "idade": "25",
+        "email": "andre@zuplae.com"
+    }
 }
-
 
 @app.get('/alunos')
 async def get_alunos(): 
     return alunos
-
 @app.get('/alunos/{aluno_id}')
-async def get_aluno(aluno_id: int):
+async def get_aluno(aluno_id: int = Path(default=None, title='ID Aluno', description='deve ser entre 1 ou 2', gt=0, lt=3)): 
     try:
         aluno = alunos[aluno_id]
-        alunos.update({
-            'id': aluno_id
-            })
-        
+        return aluno
+
     except KeyError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Aluno não encontrado')
-       
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail='Aluno não encontrado'
+        )
+
+@app.post('/alunos', status_code=status.HTTP_201_CREATED)
+async def post_aluno(aluno: Aluno):
+    next_id : int = len(alunos) + 1
+    alunos[next_id] = aluno
+    del aluno.id
     return aluno
+
+
+@app.get('/calculadora')
+async def calcular(a: int = Query(default=None, gt=5), 
+                   b: int = Query(default=None, gt=10), 
+                   x_geek: str = Header(default=None), 
+                   c: Optional[int] = None):
+    soma: int = a + b
+    if c:
+        soma = soma + c
+
+    print(f'X-GEEK: {x_geek}')
+    return {"resultado": soma}
+
+@app.put('/alunos/{aluno_id}')
+async def put_aluno(aluno_id: int, aluno: Aluno):
+    
+    if aluno_id in alunos:
+        alunos[aluno_id] = aluno
+        del aluno.id
+        return aluno
+    else:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Aluno nao encontrado com este id {aluno_id}')
+
+
+@app.delete('/alunos/{aluno_id}')
+async def delete_aluno(aluno_id: int):
+    
+    if aluno_id in alunos:
+        del alunos[aluno_id]
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+    else:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Aluno nao encontrado com este id {aluno_id}')
+
+
 
 
 if __name__ == '__main__':
@@ -42,38 +84,8 @@ if __name__ == '__main__':
 
     uvicorn.run(
         "main:app",
-        host= "127.0.0.1",
+        host="127.0.0.1",
         port=8000,
-        log_level = "info",
-        reload = True
+        log_level="info",
+        reload=True
     )
-
-
-professores = {
-    1: {'nome': 'Everton', 'idade': 37, 'e-mail': 'e@localhost'},
-    2: {"nome": "Andre", "idade": 23, "e-mail": "a@localhost"},
-    3: {"nome": "William", "idade": 28, "e-mail": "w@localhost"}
-}
-
-
-@app.get('/professores')
-async def get_professores(): 
-    return professores
-
-@app.get('/professoresNome/{prof_nome}')
-async def get_professor_por_chave(prof_nome: str):
-    for professor in professores.values():
-        if professor['nome'] == prof_nome:
-            return professor
-    
-
-@app.post("/aluno/")
-async def post_aluno(aluno: Aluno):
-    next_id = int(len(aluno))
-    aluno = [{
-        "next_id": next_id,
-        "nome": "everton",
-        "idade": 38,
-        "email": "e@eu.com",
-    }]
-    return aluno
