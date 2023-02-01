@@ -1,40 +1,80 @@
-from typing import List
 from fastapi import FastAPI 
 from fastapi import HTTPException, status
-from pydantic import BaseModel
 from models import Aluno
+from fastapi import Response
+from fastapi import Path
 
 
 app = FastAPI()
 
 @app.get('/')
 async def raiz():
-    return { "mensagem": "BEM VINDO" }
+    return { "mensagem": "Seja bem vindo ao more devs" }
 
 alunos = {
-    1: "Everton",
-    2: "Outro",
-    3: "Testador",
-    4: "Mario"
+    1: {
+        "nome": "Everton",
+        "idade": "38",
+        "email": "e@eu.com"
+    },
+    2: {
+        "nome": "Teste",
+        "idade": "17",
+        "email": "test@eu.com"
+    }
 }
-
 
 @app.get('/alunos')
 async def get_alunos(): 
     return alunos
-
 @app.get('/alunos/{aluno_id}')
-async def get_aluno(aluno_id: int):
+async def get_aluno(aluno_id: int = Path(default=None, title='ID Aluno', description='deve ser entre 1 ou 2', gt=0, lt=3)): 
     try:
         aluno = alunos[aluno_id]
-        alunos.update({
-            'id': aluno_id
-            })
-        
+        return aluno
+
     except KeyError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Aluno não encontrado')
-       
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail='Aluno nao encontrado'
+        )
+
+@app.post('/alunos', status_code=status.HTTP_201_CREATED)
+async def post_aluno(aluno: Aluno):
+    next_id : int = len(alunos) +1
+    alunos[next_id] = aluno
+    del aluno.id
     return aluno
+
+@app.get('/calculadora') 
+async def calcular(a: int,
+                   b: int,
+                   c: int):
+
+    soma: int = a + b + c
+    return {"mensagem": f'O resultado da soma é: {soma}'}
+
+
+@app.put('/alunos/{aluno_id}')
+async def put_aluno(aluno_id: int, aluno: Aluno):
+    
+    if aluno_id in alunos:
+        alunos[aluno_id] = aluno
+        del aluno.id
+        return aluno
+    else:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Aluno nao encontrado com este id {aluno_id}')
+
+
+@app.delete('/alunos/{aluno_id}')
+async def delete_aluno(aluno_id: int):
+    
+    if aluno_id in alunos:
+        del alunos[aluno_id]
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+    else:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Aluno nao encontrado com este id {aluno_id}')
+
+
 
 
 if __name__ == '__main__':
@@ -47,33 +87,3 @@ if __name__ == '__main__':
         log_level = "info",
         reload = True
     )
-
-
-professores = {
-    1: {'nome': 'Everton', 'idade': 37, 'e-mail': 'e@localhost'},
-    2: {"nome": "Andre", "idade": 23, "e-mail": "a@localhost"},
-    3: {"nome": "William", "idade": 28, "e-mail": "w@localhost"}
-}
-
-
-@app.get('/professores')
-async def get_professores(): 
-    return professores
-
-@app.get('/professoresNome/{prof_nome}')
-async def get_professor_por_chave(prof_nome: str):
-    for professor in professores.values():
-        if professor['nome'] == prof_nome:
-            return professor
-    
-
-@app.post("/aluno/")
-async def post_aluno(aluno: Aluno):
-    next_id = int(len(aluno))
-    aluno = [{
-        "next_id": next_id,
-        "nome": "everton",
-        "idade": 38,
-        "email": "e@eu.com",
-    }]
-    return aluno
