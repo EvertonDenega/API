@@ -1,110 +1,101 @@
-from fastapi import FastAPI 
+from fastapi import FastAPI
 from fastapi import HTTPException, status
-from models import Aluno
+from models import Aluno, alunos
 from fastapi import Response
-from fastapi import Path
+from fastapi import Path, Query, Header, Depends
+from typing import Optional, Dict, List, Any
+from time import sleep
 
-app = FastAPI()
+app = FastAPI(
+    title='+Devs2Blu',
+    version='BETA',
+    description='Desenvolvido por EVERTON DENEGA',
+    debug=True,
+)
+
+
+def db():
+    try:
+        print('conexao com banco')
+        sleep(1)
+    finally:
+        print('conexao com banco')
+        sleep(1)
+
 
 @app.get('/')
 async def raiz():
-    return { "mensagem": "Seja bem vindo ao more devs" }
+    return {"mensagem": "Seja bem vindo ao more devs"}
 
-alunos = {
-    1: {
-        "nome": "Everton",
-        "idade": "38",
-        "email": "e@eu.com"
-    },
-    2: {
-        "nome": "Teste",
-        "idade": "17",
-        "email": "test@eu.com"
-    }
-}
 
-@app.get('/alunos')
-async def get_alunos(): 
+@app.get('/alunos', description='lista de todos os alunos cadastrados',
+         summary='retorno substantivo')
+async def get_alunos():
     return alunos
-@app.get('/alunos/{aluno_id}')
-async def get_aluno(aluno_id: int = Path(default=None, title='ID Aluno', description='deve ser entre 1 ou 2', gt=0, lt=3)): 
+
+
+@app.get('/alunos/{aluno_id}',
+         description='mostra o aluno corresponde ao id solicitado',
+         summary='retorno substantivo')
+async def get_aluno(aluno_id: int = Path(default=None, title='ID Aluno',
+                    description='deve ser entre 1 ou 2', gt=0, lt=4),
+                    db: Any = Depends(db)):
     try:
         aluno = alunos[aluno_id]
         return aluno
 
     except KeyError:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail='Aluno não encontrado'
-        )
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Aluno não encontrado')
 
-@app.post('/alunos', status_code=status.HTTP_201_CREATED)
+
+@app.post('/alunos', status_code=status.HTTP_201_CREATED,
+          description='função de inclusão de aluno na lista',
+          summary='adiciona alunos')
 async def post_aluno(aluno: Aluno):
-    next_id : int = len(alunos) + 1
+    next_id: int = len(alunos) + 1
     alunos[next_id] = aluno
     del aluno.id
     return aluno
 
-@app.get('/calculadora') 
-async def calcular(a: int,
-                   b: int,
-                   c: int):
 
-    soma: int = a + b + c
-    return {"mensagem": f'O resultado da soma é: {soma}'}
+@app.get('/calculadora', description='calcula a soma de dois ou três números',
+         summary='calculadora de soma')
+async def calcular(a: int = Query(default=None, gt=5),
+                   b: int = Query(default=None, gt=5),
+                   c:  Optional[int] = None,
+                   xdevs: str = Header(default=None)):
+    soma = a + b
+    if c:
+        soma = soma + c
+    print(f'devs: {xdevs}')
+    return {"mensagem": f'A soma é {soma}'}
 
 
 @app.put('/alunos/{aluno_id}')
 async def put_aluno(aluno_id: int, aluno: Aluno):
-    
+
     if aluno_id in alunos:
         alunos[aluno_id] = aluno
         del aluno.id
         return aluno
     else:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Aluno nao encontrado com este id {aluno_id}')
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f'Aluno não encontrado com a id {aluno_id}')
 
 
-@app.delete('/alunos/{aluno_id}')
+@app.delete('/alunos/{aluno_id}',
+            description='função para deletar registro por id',
+            summary='deletar alunos')
 async def delete_aluno(aluno_id: int):
-    
+
     if aluno_id in alunos:
         del alunos[aluno_id]
         return Response(status_code=status.HTTP_204_NO_CONTENT)
     else:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Aluno nao encontrado com este id {aluno_id}')
-
-
-
-
-@app.get('/calculadora')
-async def calcular(a: int, 
-                   b: int, 
-                   c: int):
-    soma: int = a + b + c
-
-    return {"resultado": f'A soma é {soma}'}
-
-@app.put('/alunos/{aluno_id}')
-async def put_aluno(aluno_id: int, aluno: Aluno):
-    
-    if aluno_id in alunos:
-        alunos[aluno_id] = aluno
-        del aluno.id
-        return aluno
-    else:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Aluno nao encontrado com este id {aluno_id}')
-
-
-@app.delete('/alunos/{aluno_id}')
-async def delete_aluno(aluno_id: int):
-    
-    if aluno_id in alunos:
-        del alunos[aluno_id]
-        return Response(status_code=status.HTTP_204_NO_CONTENT)
-    else:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Aluno nao encontrado com este id {aluno_id}')
-
-
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f'Aluno não encontrado com a id {aluno_id}')
 
 
 if __name__ == '__main__':
@@ -114,6 +105,6 @@ if __name__ == '__main__':
         "main:app",
         host="127.0.0.1",
         port=8000,
-        log_level = "info",
-        reload = True
+        log_level="info",
+        reload=True
     )
